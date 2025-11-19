@@ -1,0 +1,252 @@
+/* ====== Basis reset / fonts ====== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    padding: 0;
+    margin: 0;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+    background: #f3f4f6;
+    color: #111827;
+}
+
+/* ====== Layout ====== */
+
+.cc-body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.cc-main {
+    flex: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 2rem;
+}
+
+@media (min-width: 768px) {
+    .cc-main {
+        padding: 2rem 0 3rem;
+    }
+}
+
+/* ====== Navbar ====== */
+
+.cc-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    background: rgba(248, 250, 252, 0.9);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.cc-nav-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.cc-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 1rem;
+    text-decoration: none;
+    color: #111827;
+}
+
+.cc-logo-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #22c55e, #3b82f6);
+    box-shadow: 0 6px 14px rgba(56, 189, 248, 0.4);
+}
+
+.cc-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cc-nav-link {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    text-decoration: none;
+    color: #4b5563;
+    border: 1px solid transparent;
+    transition:
+            background 0.15s ease,
+            color 0.15s ease,
+            border-color 0.15s ease,
+            transform 0.1s ease;
+}
+
+.cc-nav-link:hover {
+    background: #e5e7eb;
+    color: #111827;
+    transform: translateY(-1px);
+}
+
+.cc-nav-link-active {
+    background: #111827;
+    color: #f9fafb;
+    border-color: #111827;
+}
+
+/* ====== Footer ====== */
+
+.cc-footer {
+    border-top: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.cc-footer-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0.75rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.cc-footer-sub {
+    opacity: 0.8;
+}
+
+/* ====== Cards / algemene elementen ====== */
+
+.cc-card {
+    border-radius: 1rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.cc-card-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.cc-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.cc-card-subtitle {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* Buttons */
+
+.cc-btn {
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.9rem;
+    padding: 0.45rem 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: #111827;
+    color: #f9fafb;
+    transition:
+            background 0.15s ease,
+            transform 0.1s ease,
+            box-shadow 0.15s ease;
+}
+
+.cc-btn:hover {
+    background: #000000;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+    transform: translateY(-1px);
+}
+
+.cc-btn-outline {
+    background: #ffffff;
+    color: #111827;
+    border-color: #d1d5db;
+}
+
+.cc-btn-outline:hover {
+    background: #f3f4f6;
+}
+
+/* Inputs */
+
+.cc-input,
+.cc-textarea {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid #d1d5db;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.9rem;
+    outline: none;
+    transition:
+            border-color 0.15s ease,
+            box-shadow 0.15s ease,
+            background 0.15s ease;
+    background: #ffffff;
+}
+
+.cc-input:focus,
+.cc-textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+}
+
+.cc-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: #374151;
+}
+/* Stacked layout met nette verticale ruimte */
+.cc-stack > * + * {
+    margin-top: 0.75rem;
+}
+
+/* Card in rij-layout (title links, actions rechts) */
+.cc-card-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+/* Kleine subtitel / meta-tekst */
+.cc-text-muted {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* Doorstreepte titel als taak klaar is */
+.cc-text-done {
+    text-decoration: line-through;
+    color: #9ca3af;
+}
+
+
