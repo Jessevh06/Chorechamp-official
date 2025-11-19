@@ -70,7 +70,7 @@ jobs:
 
       - name: Build backend jar
         working-directory: ./Back-End/Chorechamp
-        run: ./mvnw -B package -DskipTests
+        run: ./mvn -B package -DskipTests
 
       - name: Start backend
         working-directory: ./Back-End/Chorechamp
