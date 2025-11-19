@@ -22,11 +22,16 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Make Maven wrapper executable
+        working-directory: ./Back-End/Chorechamp
+        run: chmod +x mvnw
+
       - name: Backend - tests + build (Maven)
         working-directory: ./Back-End/Chorechamp
         run: |
           ./mvnw -B test
           ./mvnw -B package
+        
         # Als je ooit Gradle gebruikt ipv Maven, vervang je dit door:
         # run: |
         #   ./gradlew test
