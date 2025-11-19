@@ -1,6 +1,9 @@
 // src/app/chores/page.tsx
+"use client";
 import ChoreForm from "@/components/chores/ChoreForm";
 import ChoreList from "@/components/chores/ChoreList";
+
+
 
 export default function ChoresPage() {
     return (
