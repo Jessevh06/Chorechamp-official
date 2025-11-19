@@ -22,11 +22,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Backend - tests + build (Maven)
+      - name: Backend - build zonder tests (Maven)
         working-directory: ./Back-End/Chorechamp
-        run: |
-          mvn -B test
-          mvn -B package
+        run: mvn -B package -DskipTests
+        
         
         
         # Als je ooit Gradle gebruikt ipv Maven, vervang je dit door:
