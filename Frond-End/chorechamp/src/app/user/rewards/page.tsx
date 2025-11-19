@@ -2,7 +2,6 @@
 "use client";
 
 import { useRequireRole } from "@/lib/auth/useRequireRole";
-import { AppRole } from "@/lib/auth/roles";
 import RewardShop from "@/components/rewards/RewardShop";
 
 export default function MemberRewardsPage() {

@@ -1,0 +1,129 @@
+name: ChoreChamp CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ci:
+    name: CI – build & unit tests (frontend + backend)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ---------- BACKEND (Spring Boot) ----------
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Backend - build zonder tests (Maven)
+        working-directory: ./Back-End/Chorechamp
+        run: mvn -B package -DskipTests
+        
+        
+        
+        # Als je ooit Gradle gebruikt ipv Maven, vervang je dit door:
+        # run: |
+        #   ./gradlew test
+        #   ./gradlew build
+
+      # ---------- FRONTEND (Next.js) ----------
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+
+      - name: Install frontend dependencies
+        working-directory: ./Frond-End/chorechamp
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: ./Frond-End/chorechamp
+        run: npm run lint || echo "No lint script"
+
+      - name: Build frontend
+        working-directory: ./Frond-End/chorechamp
+        run: npm run build
+
+  e2e:
+    name: E2E – Playwright (frontend + backend)
+    runs-on: ubuntu-latest
+    needs: ci   # alleen draaien als CI job groen is
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ---------- BACKEND opstarten ----------
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build backend jar
+        working-directory: ./Back-End/Chorechamp
+        run: mvn -B package -DskipTests
+
+      - name: Start backend
+        working-directory: ./Back-End/Chorechamp
+        run: |
+          nohup java -jar target/*.jar > backend.log 2>&1 &
+
+      # ---------- FRONTEND opstarten ----------
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: ./Frond-End/chorechamp
+        run: npm ci
+
+      - name: Start frontend dev server
+        working-directory: ./Frond-End/chorechamp
+        run: |
+          nohup npm run dev -- --port 3000 > frontend.log 2>&1 &
+        env:
+          NODE_ENV: test
+
+      - name: Wait for frontend to be ready
+        working-directory: ./Frond-End/chorechamp
+        run: npx wait-on http://localhost:3000
+
+      # ---------- Playwright E2E ----------
+      - name: Install Playwright browsers
+        working-directory: ./Frond-End/chorechamp
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        working-directory: ./Frond-End/chorechamp
+        run: npm run test:e2e
+
+      - name: Upload Playwright report (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: Frond-End/chorechamp/playwright-report/
+
+  deploy:
+    name: Deploy (placeholder)
+    runs-on: ubuntu-latest
+    needs: [ci, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Hier komt later jouw echte deployment
+      - name: Deployment placeholder
+        run: echo "Hier komt echte deploy (bijv. Docker/VPS/Vercel)"
