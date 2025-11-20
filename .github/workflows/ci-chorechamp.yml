@@ -124,6 +124,38 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Hier komt later jouw echte deployment
-      - name: Deployment placeholder
-        run: echo "Hier komt echte deploy (bijv. Docker/VPS/Vercel)"
+      # Deploy
+      name: Push Docker images to Docker Hub
+        runs-on: ubuntu-latest
+        needs: [ ci, e2e ]   # alleen uitvoeren als CI & E2E groen zijn
+        if: github.ref == 'refs/heads/main'
+
+        steps:
+          - name: Checkout repository
+            uses: actions/checkout@v4
+
+          # ---- Backend JAR builden ----
+          - name: Build backend JAR
+            working-directory: ./Back-End/Chorechamp
+            run: mvn -B package -DskipTests
+
+          # ---- Login Docker Hub ----
+          - name: Log in to Docker Hub
+            uses: docker/login-action@v3
+            with:
+              username: ${{ secrets.DOCKERHUB_USERNAME }}
+              password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+          # ---- Backend image ----
+          - name: Build backend image
+            working-directory: ./Back-End/Chorechamp
+            run: |
+              docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chorechamp-backend:latest .
+              docker push ${{ secrets.DOCKERHUB_USERNAME }}/chorechamp-backend:latest
+
+          # ---- Frontend image ----
+          - name: Build frontend image
+            working-directory: ./Frond-End/chorechamp
+            run: |
+              docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chorechamp-frontend:latest .
+              docker push ${{ secrets.DOCKERHUB_USERNAME }}/chorechamp-frontend:latest
