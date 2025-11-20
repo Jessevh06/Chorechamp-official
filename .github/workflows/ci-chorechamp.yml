@@ -124,6 +124,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       # ---- Backend JAR builden ----
       - name: Build backend JAR
         working-directory: ./Back-End/Chorechamp
