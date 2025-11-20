@@ -7,7 +7,7 @@ import ChoreForm from "@/components/chores/ChoreForm";
 
 export default function ChoresPage() {
     useRequireRole(["ADMIN"]);
-
+ // add chores
     return (
         <main className="cc-page cc-stack">
             <div className="cc-card cc-card-header-only">
