@@ -1,12 +1,14 @@
 // src/app/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { fetchChores, Chore } from "@/lib/api/choreApi";
 import { fetchMembers, Member } from "@/lib/api/memberApi";
 import { fetchRewards, Reward } from "@/lib/api/rewardApi";
+
+/* ---------- Types ---------- */
 
 type DashboardData = {
     chores: Chore[];
@@ -14,6 +16,105 @@ type DashboardData = {
     rewards: Reward[];
     loading: boolean;
 };
+
+type SectionHeaderProps = {
+    title: string;
+    subtitle?: string;
+    action?: ReactNode;
+};
+
+type ChoreListProps = {
+    chores: Chore[];
+    loading: boolean;
+    emptyText: string;
+    maxItems?: number;
+    pointsPrefix?: string;
+};
+
+type RewardListProps = {
+    rewards: Reward[];
+    loading: boolean;
+    maxItems?: number;
+};
+
+/* ---------- Kleine UI-componenten ---------- */
+
+function SectionHeader({ title, subtitle, action }: SectionHeaderProps) {
+    return (
+        <div className="flex items-center justify-between gap-4 mb-3">
+            <div>
+                <h2 className="cc-card-title mb-1">{title}</h2>
+                {subtitle && <p className="cc-card-subtitle">{subtitle}</p>}
+            </div>
+            {action && <div>{action}</div>}
+        </div>
+    );
+}
+
+function ChoreList({
+                       chores,
+                       loading,
+                       emptyText,
+                       maxItems = 5,
+                       pointsPrefix = "",
+                   }: ChoreListProps) {
+    if (loading) {
+        return <p className="cc-text-muted">Taken laden…</p>;
+    }
+
+    if (chores.length === 0) {
+        return <p className="cc-text-muted">{emptyText}</p>;
+    }
+
+    return (
+        <ul className="cc-list">
+            {chores.slice(0, maxItems).map((c) => (
+                <li key={c.id} className="cc-list-item">
+                    <div>
+                        <div className="font-medium">{c.title}</div>
+                        {c.description && (
+                            <div className="cc-text-muted text-xs">{c.description}</div>
+                        )}
+                    </div>
+                    <span className="cc-list-tag">
+            {pointsPrefix}
+                        {c.points} pt
+          </span>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+function RewardList({ rewards, loading, maxItems = 5 }: RewardListProps) {
+    if (loading) {
+        return <p className="cc-text-muted">Beloningen laden…</p>;
+    }
+
+    if (rewards.length === 0) {
+        return (
+            <p className="cc-text-muted">Er zijn nog geen beloningen ingesteld.</p>
+        );
+    }
+
+    return (
+        <ul className="cc-list">
+            {rewards.slice(0, maxItems).map((r) => (
+                <li key={r.id} className="cc-list-item">
+                    <div>
+                        <div className="font-medium">{r.name}</div>
+                        {r.description && (
+                            <div className="cc-text-muted text-xs">{r.description}</div>
+                        )}
+                    </div>
+                    <span className="cc-list-tag">{r.cost} pt</span>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+/* ---------- Pagina ---------- */
 
 export default function DashboardPage() {
     const { user, isAdmin } = useAuth();
@@ -64,15 +165,16 @@ export default function DashboardPage() {
 
     const { chores, members, rewards, loading } = data;
 
-    // Probeer de Member te vinden die bij deze user hoort (op basis van naam)
-    const myMember =
-        members.find((m) => m.name === user.username) ?? null;
+    // Member koppelen aan user
+    const myMember = members.find((m) => m.name === user.username) ?? null;
 
     const myCurrentPoints = myMember?.currentPoints ?? 0;
     const myTotalEarned = myMember?.totalEarned ?? 0;
 
     const openChores = chores.filter((c) => !c.done);
     const doneChores = chores.filter((c) => c.done);
+
+    const tasksLabel = isAdmin ? "Openstaande taken" : "Taken te doen";
 
     return (
         <main className="cc-page cc-stack">
@@ -83,47 +185,52 @@ export default function DashboardPage() {
                 </h1>
                 <p className="cc-text-muted">
                     {isAdmin
-                        ? "Beheer taken, leden en beloningen en houd overzicht over je huishouden."
-                        : "Zie welke taken je kunt doen, hoeveel punten je hebt en welke beloningen je kunt pakken."}
+                        ? "Beheer taken, leden en beloningen."
+                        : "Bekijk je punten, taken en beloningen."}
                 </p>
             </div>
 
-            {/* Metrics row */}
-            <section className="cc-card">
-                <div className="cc-grid-3">
-                    <MetricCard
-                        label="Beschikbare punten"
-                        value={loading ? "…" : myCurrentPoints.toString()}
-                        hint={
-                            myMember
-                                ? "Punten die je nu kunt uitgeven in de beloningsshop."
-                                : "Je bent nog niet gekoppeld aan een member."
-                        }
-                    />
-                    <MetricCard
-                        label="Totaal verdiend"
-                        value={loading ? "…" : myTotalEarned.toString()}
-                        hint="Hoeveel punten je in totaal hebt verzameld."
-                    />
-                    <MetricCard
-                        label={isAdmin ? "Openstaande taken" : "Taken te doen"}
-                        value={loading ? "…" : openChores.length.toString()}
-                        hint={
-                            isAdmin
-                                ? "Taken in het huishouden die nog niet zijn afgevinkt."
-                                : "Taken die je kunt oppakken om punten te verdienen."
-                        }
-                    />
-                </div>
+            {/* Overzichtskaart met stats */}
+            <section className="cc-card cc-stack">
+                <h2 className="cc-card-title mb-1">Overzicht</h2>
+                <p className="cc-text-muted mb-3">
+                    Snel overzicht van je punten en taken.
+                </p>
+                <ul className="cc-list">
+                    <li className="cc-list-item">
+                        <span>Beschikbare punten</span>
+                        <span className="cc-list-value">
+              {loading ? "…" : myCurrentPoints}
+            </span>
+                    </li>
+                    <li className="cc-list-item">
+                        <span>Totaal verdiend</span>
+                        <span className="cc-list-value">
+              {loading ? "…" : myTotalEarned}
+            </span>
+                    </li>
+                    <li className="cc-list-item">
+                        <span>{tasksLabel}</span>
+                        <span className="cc-list-value">
+              {loading ? "…" : openChores.length}
+            </span>
+                    </li>
+                </ul>
+                {!myMember && (
+                    <p className="cc-text-muted mt-2 text-sm">
+                        Je bent nog niet gekoppeld aan een member. Vraag je
+                        huishoudhoofd om je toe te voegen.
+                    </p>
+                )}
             </section>
 
-            {/* Voor admin: beheer-overzicht */}
+            {/* Admin: beheer-overzicht */}
             {isAdmin && (
                 <section className="cc-grid-2">
                     <div className="cc-card cc-stack">
                         <SectionHeader
-                            title="Huishouden overzicht"
-                            subtitle="Snel inzicht in leden en taken."
+                            title="Huishouden"
+                            subtitle="Leden, beloningen en afgeronde taken."
                             action={
                                 <Link href="/members" className="cc-btn cc-btn-outline">
                                     Naar leden
@@ -134,20 +241,20 @@ export default function DashboardPage() {
                             <li className="cc-list-item">
                                 <span>Leden in het huishouden</span>
                                 <span className="cc-list-value">
-                                    {loading ? "…" : members.length}
-                                </span>
+                  {loading ? "…" : members.length}
+                </span>
                             </li>
                             <li className="cc-list-item">
                                 <span>Beloningen ingesteld</span>
                                 <span className="cc-list-value">
-                                    {loading ? "…" : rewards.length}
-                                </span>
+                  {loading ? "…" : rewards.length}
+                </span>
                             </li>
                             <li className="cc-list-item">
                                 <span>Afgeronde taken</span>
                                 <span className="cc-list-value">
-                                    {loading ? "…" : doneChores.length}
-                                </span>
+                  {loading ? "…" : doneChores.length}
+                </span>
                             </li>
                         </ul>
                     </div>
@@ -162,152 +269,50 @@ export default function DashboardPage() {
                                 </Link>
                             }
                         />
-                        {loading ? (
-                            <p className="cc-text-muted">Taken laden…</p>
-                        ) : openChores.length === 0 ? (
-                            <p className="cc-text-muted">
-                                Er zijn op dit moment geen openstaande taken.
-                            </p>
-                        ) : (
-                            <ul className="cc-list">
-                                {openChores.slice(0, 5).map((c) => (
-                                    <li key={c.id} className="cc-list-item">
-                                        <div>
-                                            <div className="font-medium">{c.title}</div>
-                                            {c.description && (
-                                                <div className="cc-text-muted text-xs">
-                                                    {c.description}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <span className="cc-list-tag">
-                                            {c.points} pt
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                        <ChoreList
+                            chores={openChores}
+                            loading={loading}
+                            emptyText="Er zijn op dit moment geen openstaande taken."
+                        />
                     </div>
                 </section>
             )}
 
-            {/* Voor member: persoonlijke overview */}
+            {/* Member: persoonlijke overview */}
             {!isAdmin && (
                 <section className="cc-grid-2">
                     <div className="cc-card cc-stack">
                         <SectionHeader
                             title="Mijn taken"
-                            subtitle="Taken die je nu kunt oppakken."
+                            subtitle={`Taken die je nu kunt oppakken (${openChores.length}).`}
                             action={
                                 <Link href="/user/tasks" className="cc-btn cc-btn-outline">
                                     Naar mijn taken
                                 </Link>
                             }
                         />
-                        {loading ? (
-                            <p className="cc-text-muted">Taken laden…</p>
-                        ) : openChores.length === 0 ? (
-                            <p className="cc-text-muted">
-                                Er zijn nog geen taken ingepland. Vraag je admin om taken toe
-                                te voegen.
-                            </p>
-                        ) : (
-                            <ul className="cc-list">
-                                {openChores.slice(0, 5).map((c) => (
-                                    <li key={c.id} className="cc-list-item">
-                                        <div>
-                                            <div className="font-medium">{c.title}</div>
-                                            {c.description && (
-                                                <div className="cc-text-muted text-xs">
-                                                    {c.description}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <span className="cc-list-tag">
-                                            +{c.points} pt
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                        <ChoreList
+                            chores={openChores}
+                            loading={loading}
+                            emptyText="Er zijn nog geen taken ingepland. Vraag je admin om taken toe te voegen."
+                            pointsPrefix="+"
+                        />
                     </div>
 
                     <div className="cc-card cc-stack">
                         <SectionHeader
                             title="Beloningen"
-                            subtitle="Dingen waar je je punten aan kunt uitgeven."
+                            subtitle={`Beloningen waar je je punten aan kunt uitgeven (${rewards.length}).`}
                             action={
                                 <Link href="/user/rewards" className="cc-btn cc-btn-outline">
                                     Naar beloningsshop
                                 </Link>
                             }
                         />
-                        {loading ? (
-                            <p className="cc-text-muted">Beloningen laden…</p>
-                        ) : rewards.length === 0 ? (
-                            <p className="cc-text-muted">
-                                Er zijn nog geen beloningen ingesteld.
-                            </p>
-                        ) : (
-                            <ul className="cc-list">
-                                {rewards.slice(0, 5).map((r) => (
-                                    <li key={r.id} className="cc-list-item">
-                                        <div>
-                                            <div className="font-medium">{r.name}</div>
-                                            {r.description && (
-                                                <div className="cc-text-muted text-xs">
-                                                    {r.description}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <span className="cc-list-tag">
-                                            {r.cost} pt
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                        <RewardList rewards={rewards} loading={loading} />
                     </div>
                 </section>
             )}
         </main>
-    );
-}
-
-/* Kleine herbruikbare UI-blokken */
-
-type MetricProps = {
-    label: string;
-    value: string;
-    hint?: string;
-};
-
-function MetricCard({ label, value, hint }: MetricProps) {
-    return (
-        <div className="cc-metric">
-            <div className="cc-metric-label">{label}</div>
-            <div className="cc-metric-value">{value}</div>
-            {hint && <div className="cc-metric-hint">{hint}</div>}
-        </div>
-    );
-}
-
-type SectionHeaderProps = {
-    title: string;
-    subtitle?: string;
-    action?: React.ReactNode;
-};
-
-function SectionHeader({ title, subtitle, action }: SectionHeaderProps) {
-    return (
-        <div className="flex items-center justify-between gap-4 mb-3">
-            <div>
-                <h2 className="cc-card-title mb-1">{title}</h2>
-                {subtitle && (
-                    <p className="cc-card-subtitle">{subtitle}</p>
-                )}
-            </div>
-            {action && <div>{action}</div>}
-        </div>
     );
 }
