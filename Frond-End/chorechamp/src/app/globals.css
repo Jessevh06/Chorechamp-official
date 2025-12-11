@@ -249,4 +249,9 @@ body {
     color: #9ca3af;
 }
 
+.cc-list-item span:first-child {
+    margin-right: 6px;
+}
+
+
 
