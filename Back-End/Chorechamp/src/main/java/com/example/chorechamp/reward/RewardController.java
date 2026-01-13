@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/rewards")
+@RequestMapping("/api")
 @CrossOrigin(origins = "http://localhost:3000")
 public class RewardController {
 
@@ -15,22 +15,22 @@ public class RewardController {
         this.service = service;
     }
 
-    @GetMapping
-    public List<RewardDto> getAll() {
-        return service.getAll();
+    @GetMapping("/households/{householdId}/rewards")
+    public List<RewardDto> getAllForHousehold(@PathVariable String householdId) {
+        return service.getAllForHousehold(householdId);
     }
 
-    @PostMapping
-    public RewardDto create(@RequestBody RewardDto dto) {
-        return service.create(dto);
+    @PostMapping("/households/{householdId}/rewards")
+    public RewardDto createForHousehold(@PathVariable String householdId, @RequestBody RewardDto dto) {
+        return service.createForHousehold(householdId, dto);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/rewards/{id}")
     public RewardDto update(@PathVariable String id, @RequestBody RewardDto dto) {
         return service.update(id, dto);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/rewards/{id}")
     public void delete(@PathVariable String id) {
         service.delete(id);
     }

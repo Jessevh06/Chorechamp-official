@@ -1,34 +1,73 @@
-// src/components/leaderboard/LeaderboardView.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchMembers, Member } from "@/lib/api/memberApi";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { fetchCurrentHousehold } from "@/lib/api/HouseholdMembershipApi";
+import { fetchMembersForHousehold, type Member } from "@/lib/api/memberApi";
 
 export default function LeaderboardView() {
+    const { user, isReady } = useAuth();
+
     const [members, setMembers] = useState<Member[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        load();
-    }, []);
+        let cancelled = false;
 
-    async function load() {
-        setLoading(true);
-        try {
-            const data: Member[] = await fetchMembers();
-            // sorteren op totalEarned desc
-            data.sort((a: Member, b: Member) => b.totalEarned - a.totalEarned);
-            setMembers(data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
+        async function load() {
+            // ✅ wacht tot auth klaar is
+            if (!isReady) {
+                setLoading(true);
+                return;
+            }
+
+            // ✅ auth is klaar, maar niet ingelogd
+            if (!user) {
+                setMembers([]);
+                setError(null);
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
+            setError(null);
+
+            try {
+                const household = await fetchCurrentHousehold(user.id);
+                if (!household) {
+                    if (!cancelled) {
+                        setMembers([]);
+                        setError("Je zit nog niet in een huishouden.");
+                        setLoading(false);
+                    }
+                    return;
+                }
+
+                const data = await fetchMembersForHousehold(household.id);
+                data.sort((a, b) => (b.totalEarned ?? 0) - (a.totalEarned ?? 0));
+
+                if (!cancelled) {
+                    setMembers(data);
+                }
+            } catch (err) {
+                console.error(err);
+                if (!cancelled) setError("Kon leaderboard niet laden.");
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
         }
-    }
 
-    if (loading) {
-        return <p className="cc-text-muted">Leaderboard laden...</p>;
-    }
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [user?.id, isReady]);
+
+    if (loading) return <p className="cc-text-muted">Leaderboard laden...</p>;
+    if (!isReady) return <p className="cc-text-muted">Bezig met laden...</p>;
+    if (!user) return <p className="cc-text-muted">Log in om het leaderboard te zien.</p>;
+    if (error) return <p className="text-red-500 text-sm">{error}</p>;
 
     if (members.length === 0) {
         return <p className="cc-text-muted">Er zijn nog geen leden met punten.</p>;

@@ -1,318 +1,244 @@
-// src/app/page.tsx
 "use client";
 
-import { useEffect, useState, ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { fetchChores, Chore } from "@/lib/api/choreApi";
-import { fetchMembers, Member } from "@/lib/api/memberApi";
-import { fetchRewards, Reward } from "@/lib/api/rewardApi";
 
-/* ---------- Types ---------- */
+import { fetchChoresForHousehold, type Chore } from "@/lib/api/choreApi";
+import { fetchMembersForHousehold, type Member } from "@/lib/api/memberApi";
+import { fetchRewardsForHousehold, type Reward } from "@/lib/api/rewardApi";
+import { fetchCurrentHousehold } from "@/lib/api/HouseholdMembershipApi";
 
-type DashboardData = {
-    chores: Chore[];
-    members: Member[];
-    rewards: Reward[];
-    loading: boolean;
-};
-
-type SectionHeaderProps = {
-    title: string;
-    subtitle?: string;
-    action?: ReactNode;
-};
-
-type ChoreListProps = {
-    chores: Chore[];
-    loading: boolean;
-    emptyText: string;
-    maxItems?: number;
-    pointsPrefix?: string;
-};
-
-type RewardListProps = {
-    rewards: Reward[];
-    loading: boolean;
-    maxItems?: number;
-};
-
-/* ---------- Kleine UI-componenten ---------- */
-
-function SectionHeader({ title, subtitle, action }: SectionHeaderProps) {
-    return (
-        <div className="flex items-center justify-between gap-4 mb-3">
-            <div>
-                <h2 className="cc-card-title mb-1">{title}</h2>
-                {subtitle && <p className="cc-card-subtitle">{subtitle}</p>}
-            </div>
-            {action && <div>{action}</div>}
-        </div>
-    );
-}
-
-function ChoreList({
-                       chores,
-                       loading,
-                       emptyText,
-                       maxItems = 5,
-                       pointsPrefix = "",
-                   }: ChoreListProps) {
-    if (loading) {
-        return <p className="cc-text-muted">Taken laden…</p>;
-    }
-
-    if (chores.length === 0) {
-        return <p className="cc-text-muted">{emptyText}</p>;
-    }
-
-    return (
-        <ul className="cc-list">
-            {chores.slice(0, maxItems).map((c) => (
-                <li key={c.id} className="cc-list-item">
-                    <div>
-                        <div className="font-medium">{c.title}</div>
-                        {c.description && (
-                            <div className="cc-text-muted text-xs">{c.description}</div>
-                        )}
-                    </div>
-                    <span className="cc-list-tag">
-            {pointsPrefix}
-                        {c.points} pt
-          </span>
-                </li>
-            ))}
-        </ul>
-    );
-}
-
-function RewardList({ rewards, loading, maxItems = 5 }: RewardListProps) {
-    if (loading) {
-        return <p className="cc-text-muted">Beloningen laden…</p>;
-    }
-
-    if (rewards.length === 0) {
-        return (
-            <p className="cc-text-muted">Er zijn nog geen beloningen ingesteld.</p>
-        );
-    }
-
-    return (
-        <ul className="cc-list">
-            {rewards.slice(0, maxItems).map((r) => (
-                <li key={r.id} className="cc-list-item">
-                    <div>
-                        <div className="font-medium">{r.name}</div>
-                        {r.description && (
-                            <div className="cc-text-muted text-xs">{r.description}</div>
-                        )}
-                    </div>
-                    <span className="cc-list-tag">{r.cost} pt</span>
-                </li>
-            ))}
-        </ul>
-    );
-}
-
-/* ---------- Pagina ---------- */
+import type { HouseholdDto } from "@/lib/types/household";
 
 export default function DashboardPage() {
-    const { user, isAdmin } = useAuth();
-    const [data, setData] = useState<DashboardData>({
-        chores: [],
-        members: [],
-        rewards: [],
-        loading: true,
-    });
+    const { user } = useAuth();
+
+    const [household, setHousehold] = useState<HouseholdDto | null>(null);
+    const [householdLoading, setHouseholdLoading] = useState(false);
+    const [householdError, setHouseholdError] = useState<string | null>(null);
+
+    const [chores, setChores] = useState<Chore[]>([]);
+    const [members, setMembers] = useState<Member[]>([]);
+    const [rewards, setRewards] = useState<Reward[]>([]);
+    const [dataLoading, setDataLoading] = useState(false);
+    const [dataError, setDataError] = useState<string | null>(null);
+
+    const userId = user?.id ?? "";
 
     useEffect(() => {
-        if (!user) return;
+        let cancelled = false;
 
-        async function load() {
+        async function loadHousehold() {
+            if (!userId) return;
+
+            setHouseholdLoading(true);
+            setHouseholdError(null);
+
             try {
-                const [chores, members, rewards] = await Promise.all([
-                    fetchChores(),
-                    fetchMembers(),
-                    fetchRewards(),
-                ]);
-
-                setData({ chores, members, rewards, loading: false });
+                const h = await fetchCurrentHousehold(userId);
+                if (!cancelled) setHousehold(h);
             } catch (err) {
-                console.error("Failed to load dashboard data:", err);
-                setData((prev) => ({ ...prev, loading: false }));
+                console.error(err);
+                if (!cancelled) setHouseholdError("Kon je huishouden niet laden.");
+            } finally {
+                if (!cancelled) setHouseholdLoading(false);
             }
         }
 
-        load();
-    }, [user]);
+        loadHousehold();
+        return () => {
+            cancelled = true;
+        };
+    }, [userId]);
 
-    // Niet ingelogd → simpel welkom + login-link
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadData() {
+            if (!household) return;
+
+            setDataLoading(true);
+            setDataError(null);
+
+            try {
+                const [choresRes, membersRes, rewardsRes] = await Promise.all([
+                    fetchChoresForHousehold(household.id),
+                    fetchMembersForHousehold(household.id),
+                    fetchRewardsForHousehold(household.id),
+                ]);
+
+                if (!cancelled) {
+                    setChores(choresRes);
+                    setMembers(membersRes);
+                    setRewards(rewardsRes);
+                }
+            } catch (err) {
+                console.error(err);
+                if (!cancelled) setDataError("Kon de gegevens van je huishouden niet laden.");
+            } finally {
+                if (!cancelled) setDataLoading(false);
+            }
+        }
+
+        loadData();
+        return () => {
+            cancelled = true;
+        };
+    }, [household?.id]);
+
+    // ---------- RENDER ----------
+
     if (!user) {
         return (
             <main className="cc-page">
+                <div className="cc-grid-2">
+                    <section className="cc-card cc-stack">
+                        <h1 className="cc-card-title">Welkom bij ChoreChamp</h1>
+                        <p className="cc-text-muted">
+                            Log in of maak een account aan om je huishouden te organiseren, taken te verdelen en beloningen te verdienen.
+                        </p>
+                        <div className="flex gap-3">
+                            <Link href="/login" className="cc-btn">
+                                Inloggen
+                            </Link>
+                        </div>
+                    </section>
+
+                    <section className="cc-card cc-stack">
+                        <h2 className="cc-card-title">Wat kun je met ChoreChamp?</h2>
+                        <ul className="list-disc pl-5 space-y-1 text-sm text-slate-100/80">
+                            <li>Maak een huishouden aan met je gezin of huisgenoten</li>
+                            <li>Deel taken uit en houd bij wie wat heeft gedaan</li>
+                            <li>Verdien punten en wissel ze in voor beloningen</li>
+                        </ul>
+                    </section>
+                </div>
+            </main>
+        );
+    }
+
+    if (householdLoading && !household && !householdError) {
+        return (
+            <main className="cc-page cc-stack">
                 <div className="cc-card cc-stack">
-                    <h1 className="cc-card-title">Welkom bij ChoreChamp</h1>
+                    <h1 className="cc-card-title">Welkom, {user.username}</h1>
+                    <p className="cc-text-muted">We zijn je huishouden aan het laden…</p>
+                </div>
+            </main>
+        );
+    }
+
+    if (!household && !householdLoading) {
+        return (
+            <main className="cc-page cc-stack">
+                <div className="cc-card cc-stack">
+                    <h1 className="cc-card-title">Welkom, {user.username}</h1>
+
+                    {householdError ? (
+                        <p className="cc-text-muted">{householdError}</p>
+                    ) : (
+                        <p className="cc-text-muted">Je zit nog in geen huishouden.</p>
+                    )}
+
                     <p className="cc-text-muted">
-                        Log in om je huishouden eerlijk en overzichtelijk te houden.
+                        Start een nieuw huishouden of join er een met een invite code.
                     </p>
-                    <Link href="/login" className="cc-btn cc-btn-primary w-fit">
-                        Inloggen
+
+                    <Link href="/household/start" className="cc-btn w-fit">
+                        Koppel aan een huishouden
                     </Link>
                 </div>
             </main>
         );
     }
 
-    const { chores, members, rewards, loading } = data;
-
-    // Member koppelen aan user
-    const myMember = members.find((m) => m.name === user.username) ?? null;
-
-    const myCurrentPoints = myMember?.currentPoints ?? 0;
-    const myTotalEarned = myMember?.totalEarned ?? 0;
-
-    const openChores = chores.filter((c) => !c.done);
-    const doneChores = chores.filter((c) => c.done);
-
-    const tasksLabel = isAdmin ? "Openstaande taken" : "Taken te doen";
-
     return (
         <main className="cc-page cc-stack">
-            {/* Header */}
-            <div className="cc-card cc-stack">
-                <h1 className="cc-card-title">
-                    Hoi {user.username}, {isAdmin ? "admin" : "member"}
-                </h1>
-                <p className="cc-text-muted">
-                    {isAdmin
-                        ? "Beheer taken, leden en beloningen."
-                        : "Bekijk je punten, taken en beloningen."}
-                </p>
-            </div>
-
-            {/* Overzichtskaart met stats */}
             <section className="cc-card cc-stack">
-                <h2 className="cc-card-title mb-1">Overzicht</h2>
-                <p className="cc-text-muted mb-3">
-                    Snel overzicht van je punten en taken.
-                </p>
-                <ul className="cc-list">
-                    <li className="cc-list-item">
-                        <span>Beschikbare punten</span>
-                        <span className="cc-list-value">
-              {loading ? "…" : myCurrentPoints}
-            </span>
-                    </li>
-                    <li className="cc-list-item">
-                        <span>Totaal verdiend</span>
-                        <span className="cc-list-value">
-              {loading ? "…" : myTotalEarned}
-            </span>
-                    </li>
-                    <li className="cc-list-item">
-                        <span>{tasksLabel}</span>
-                        <span className="cc-list-value">
-              {loading ? "…" : openChores.length}
-            </span>
-                    </li>
-                </ul>
-                {!myMember && (
-                    <p className="cc-text-muted mt-2 text-sm">
-                        Je bent nog niet gekoppeld aan een member. Vraag je
-                        huishoudhoofd om je toe te voegen.
-                    </p>
-                )}
+                <div className="flex flex-col gap-2">
+                    <h1 className="cc-card-title">Welkom, {user.username}</h1>
+                    {household && (
+                        <p className="cc-text-muted">
+                            Je zit in huishouden{" "}
+                            <span className="font-semibold">{household.name}</span> (invite code:{" "}
+                            {household.inviteCode}).
+                        </p>
+                    )}
+                    {dataError && <p className="text-red-500 text-sm mt-1">{dataError}</p>}
+                </div>
             </section>
 
-            {/* Admin: beheer-overzicht */}
-            {isAdmin && (
-                <section className="cc-grid-2">
-                    <div className="cc-card cc-stack">
-                        <SectionHeader
-                            title="Huishouden"
-                            subtitle="Leden, beloningen en afgeronde taken."
-                            action={
-                                <Link href="/members" className="cc-btn cc-btn-outline">
-                                    Naar leden
-                                </Link>
-                            }
-                        />
-                        <ul className="cc-list">
-                            <li className="cc-list-item">
-                                <span>Leden in het huishouden</span>
-                                <span className="cc-list-value">
-                  {loading ? "…" : members.length}
-                </span>
-                            </li>
-                            <li className="cc-list-item">
-                                <span>Beloningen ingesteld</span>
-                                <span className="cc-list-value">
-                  {loading ? "…" : rewards.length}
-                </span>
-                            </li>
-                            <li className="cc-list-item">
-                                <span>Afgeronde taken</span>
-                                <span className="cc-list-value">
-                  {loading ? "…" : doneChores.length}
-                </span>
-                            </li>
+            <section className="cc-grid-3">
+                <div className="cc-card cc-stack">
+                    <h2 className="cc-card-title">Leden</h2>
+
+                    {dataLoading && members.length === 0 ? (
+                        <p className="cc-text-muted">Leden laden…</p>
+                    ) : members.length === 0 ? (
+                        <p className="cc-text-muted">Nog geen leden toegevoegd aan dit huishouden.</p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {members.map((m) => (
+                                <li key={m.id} className="flex items-center justify-between text-sm">
+                                    <span>{m.name}</span>
+                                    <span className="text-xs text-slate-300">{m.currentPoints} punten</span>
+                                </li>
+                            ))}
                         </ul>
-                    </div>
+                    )}
 
-                    <div className="cc-card cc-stack">
-                        <SectionHeader
-                            title="Openstaande taken"
-                            subtitle="Een selectie van taken die nog gedaan moeten worden."
-                            action={
-                                <Link href="/chores" className="cc-btn cc-btn-outline">
-                                    Taken beheren
-                                </Link>
-                            }
-                        />
-                        <ChoreList
-                            chores={openChores}
-                            loading={loading}
-                            emptyText="Er zijn op dit moment geen openstaande taken."
-                        />
-                    </div>
-                </section>
-            )}
+                    <Link href="/members" className="cc-link mt-2">
+                        Leden beheren
+                    </Link>
+                </div>
 
-            {/* Member: persoonlijke overview */}
-            {!isAdmin && (
-                <section className="cc-grid-2">
-                    <div className="cc-card cc-stack">
-                        <SectionHeader
-                            title="Mijn taken"
-                            subtitle={`Taken die je nu kunt oppakken (${openChores.length}).`}
-                            action={
-                                <Link href="/user/tasks" className="cc-btn cc-btn-outline">
-                                    Naar mijn taken
-                                </Link>
-                            }
-                        />
-                        <ChoreList
-                            chores={openChores}
-                            loading={loading}
-                            emptyText="Er zijn nog geen taken ingepland. Vraag je admin om taken toe te voegen."
-                            pointsPrefix="+"
-                        />
-                    </div>
+                <div className="cc-card cc-stack">
+                    <h2 className="cc-card-title">Taken</h2>
 
-                    <div className="cc-card cc-stack">
-                        <SectionHeader
-                            title="Beloningen"
-                            subtitle={`Beloningen waar je je punten aan kunt uitgeven (${rewards.length}).`}
-                            action={
-                                <Link href="/user/rewards" className="cc-btn cc-btn-outline">
-                                    Naar beloningsshop
-                                </Link>
-                            }
-                        />
-                        <RewardList rewards={rewards} loading={loading} />
-                    </div>
-                </section>
-            )}
+                    {dataLoading && chores.length === 0 ? (
+                        <p className="cc-text-muted">Taken laden…</p>
+                    ) : chores.length === 0 ? (
+                        <p className="cc-text-muted">Nog geen taken aangemaakt.</p>
+                    ) : (
+                        <ul className="space-y-2 text-sm">
+                            {chores.slice(0, 5).map((c) => (
+                                <li key={c.id} className="flex justify-between">
+                                    <span>{c.title}</span>
+                                    <span className="text-xs text-slate-300">{c.points} pt</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <Link href="/chores" className="cc-link mt-2">
+                        Taken beheren
+                    </Link>
+                </div>
+
+                <div className="cc-card cc-stack">
+                    <h2 className="cc-card-title">Beloningen</h2>
+
+                    {dataLoading && rewards.length === 0 ? (
+                        <p className="cc-text-muted">Beloningen laden…</p>
+                    ) : rewards.length === 0 ? (
+                        <p className="cc-text-muted">Nog geen beloningen aangemaakt.</p>
+                    ) : (
+                        <ul className="space-y-2 text-sm">
+                            {rewards.slice(0, 5).map((r) => (
+                                <li key={r.id} className="flex justify-between">
+                                    <span>{r.name}</span>
+                                    <span className="text-xs text-slate-300">{r.cost} pt</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <Link href="/rewards" className="cc-link mt-2">
+                        Beloningen beheren
+                    </Link>
+                </div>
+            </section>
         </main>
     );
 }

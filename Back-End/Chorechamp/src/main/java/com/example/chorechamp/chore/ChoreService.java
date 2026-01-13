@@ -1,5 +1,9 @@
 package com.example.chorechamp.chore;
 
+import com.example.chorechamp.household.Household;
+import com.example.chorechamp.household.HouseholdRepository;
+import com.example.chorechamp.member.Member;
+import com.example.chorechamp.member.MemberRepository;
 import com.example.chorechamp.member.MemberService;
 import org.springframework.stereotype.Service;
 
@@ -11,20 +15,41 @@ public class ChoreService {
 
     private final ChoreRepository repository;
     private final MemberService memberService;
+    private final HouseholdRepository householdRepository;
+    private final MemberRepository memberRepository;
 
-    public ChoreService(ChoreRepository repository, MemberService memberService) {
+    public ChoreService(
+            ChoreRepository repository,
+            MemberService memberService,
+            HouseholdRepository householdRepository,
+            MemberRepository memberRepository
+    ) {
         this.repository = repository;
         this.memberService = memberService;
+        this.householdRepository = householdRepository;
+        this.memberRepository = memberRepository;
     }
 
+    // ✅ Globaal weghalen uit UI, maar mag blijven bestaan
     public List<ChoreDto> getAll() {
         return repository.findAll().stream()
                 .map(ChoreDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    public ChoreDto create(ChoreDto dto) {
-        Chore chore = Chore.createNew(dto.getTitle(), dto.getDescription(), dto.getPoints());
+    // ✅ Household scoped
+    public List<ChoreDto> getAllForHousehold(String householdId) {
+        return repository.findByHouseholdId(householdId).stream()
+                .map(ChoreDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    // ✅ Household scoped create
+    public ChoreDto createForHousehold(String householdId, ChoreDto dto) {
+        Household household = householdRepository.findById(householdId)
+                .orElseThrow(() -> new RuntimeException("Household not found"));
+
+        Chore chore = Chore.createNew(dto.getTitle(), dto.getDescription(), dto.getPoints(), household);
         Chore saved = repository.save(chore);
         return ChoreDto.fromEntity(saved);
     }
@@ -56,12 +81,20 @@ public class ChoreService {
             throw new RuntimeException("Chore is already assigned");
         }
 
+        // ✅ extra check: member moet in hetzelfde huishouden zitten
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new RuntimeException("Member not found"));
+
+        if (member.getHousehold() == null || chore.getHousehold() == null ||
+                !member.getHousehold().getId().equals(chore.getHousehold().getId())) {
+            throw new RuntimeException("Member is not in the same household as this chore");
+        }
+
         chore.setAssignedMemberId(memberId);
         Chore saved = repository.save(chore);
         return ChoreDto.fromEntity(saved);
     }
 
-    // Lid vraagt afronding aan -> pendingApproval = true, done blijft false
     public ChoreDto requestComplete(String choreId) {
         Chore chore = repository.findById(choreId)
                 .orElseThrow(() -> new RuntimeException("Chore not found"));
@@ -75,7 +108,6 @@ public class ChoreService {
         return ChoreDto.fromEntity(saved);
     }
 
-    // Huishoudhoofd keurt goed -> done = true, pendingApproval = false, punten toekennen
     public ChoreDto approve(String choreId) {
         Chore chore = repository.findById(choreId)
                 .orElseThrow(() -> new RuntimeException("Chore not found"));
@@ -94,4 +126,23 @@ public class ChoreService {
         Chore saved = repository.save(chore);
         return ChoreDto.fromEntity(saved);
     }
+
+    public ChoreDto claimByUser(String choreId, String userId) {
+        Chore chore = repository.findById(choreId)
+                .orElseThrow(() -> new RuntimeException("Chore not found"));
+
+        if (chore.getAssignedMemberId() != null) {
+            throw new RuntimeException("Chore is already assigned");
+        }
+
+        Member member = memberRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Member not found for user: " + userId));
+
+        chore.setAssignedMemberId(member.getId());
+
+        Chore saved = repository.save(chore);
+        return ChoreDto.fromEntity(saved);
+    }
+
+
 }

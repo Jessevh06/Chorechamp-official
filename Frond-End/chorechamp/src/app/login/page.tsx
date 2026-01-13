@@ -26,7 +26,7 @@ export default function LoginPage() {
             } else {
                 await register(email, username, password);
             }
-            router.push("/"); // na login naar dashboard
+            router.push("/");
         } catch (err) {
             console.error(err);
             setError(mode === "login" ? "Inloggen mislukt" : "Account aanmaken mislukt");
@@ -51,14 +51,18 @@ export default function LoginPage() {
                 <div className="flex gap-2 mb-4">
                     <button
                         type="button"
-                        className={`cc-btn cc-btn-outline flex-1 ${mode === "login" ? "cc-btn-active" : ""}`}
+                        className={`cc-btn cc-btn-outline flex-1 ${
+                            mode === "login" ? "cc-btn-active" : ""
+                        }`}
                         onClick={() => setMode("login")}
                     >
                         Inloggen
                     </button>
                     <button
                         type="button"
-                        className={`cc-btn cc-btn-outline flex-1 ${mode === "register" ? "cc-btn-active" : ""}`}
+                        className={`cc-btn cc-btn-outline flex-1 ${
+                            mode === "register" ? "cc-btn-active" : ""
+                        }`}
                         onClick={() => setMode("register")}
                     >
                         Nieuw account
@@ -71,8 +75,11 @@ export default function LoginPage() {
                     {mode === "login" ? (
                         <>
                             <div>
-                                <label className="cc-label">Email of gebruikersnaam</label>
+                                <label className="cc-label" htmlFor="identifier">
+                                    Email of gebruikersnaam
+                                </label>
                                 <input
+                                    id="identifier"
                                     className="cc-input"
                                     value={identifier}
                                     onChange={(e) => setIdentifier(e.target.value)}
@@ -81,8 +88,11 @@ export default function LoginPage() {
                             </div>
 
                             <div>
-                                <label className="cc-label">Wachtwoord</label>
+                                <label className="cc-label" htmlFor="password">
+                                    Wachtwoord
+                                </label>
                                 <input
+                                    id="password"
                                     className="cc-input"
                                     type="password"
                                     value={password}
@@ -94,8 +104,11 @@ export default function LoginPage() {
                     ) : (
                         <>
                             <div>
-                                <label className="cc-label">Email</label>
+                                <label className="cc-label" htmlFor="reg-email">
+                                    Email
+                                </label>
                                 <input
+                                    id="reg-email"
                                     className="cc-input"
                                     type="email"
                                     value={email}
@@ -105,8 +118,11 @@ export default function LoginPage() {
                             </div>
 
                             <div>
-                                <label className="cc-label">Gebruikersnaam</label>
+                                <label className="cc-label" htmlFor="reg-username">
+                                    Gebruikersnaam
+                                </label>
                                 <input
+                                    id="reg-username"
                                     className="cc-input"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
@@ -115,8 +131,11 @@ export default function LoginPage() {
                             </div>
 
                             <div>
-                                <label className="cc-label">Wachtwoord</label>
+                                <label className="cc-label" htmlFor="reg-password">
+                                    Wachtwoord
+                                </label>
                                 <input
+                                    id="reg-password"
                                     className="cc-input"
                                     type="password"
                                     value={password}
