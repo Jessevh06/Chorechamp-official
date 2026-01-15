@@ -1,8 +1,8 @@
 "use client";
 
 import { useRequireRole } from "@/lib/auth/useRequireRole";
-import MemberList from "@/components/members/MemberList";
-import MemberForm from "@/components/members/MemberForm";
+
+
 
 export default function MembersPage() {
     useRequireRole(["ADMIN"]);
@@ -15,9 +15,6 @@ export default function MembersPage() {
                     Voeg leden toe of wijzig bestaande leden.
                 </p>
             </div>
-
-            <MemberForm />
-            <MemberList />
         </main>
     );
 }

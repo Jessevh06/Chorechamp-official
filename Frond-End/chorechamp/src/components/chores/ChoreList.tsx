@@ -1,121 +1,118 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { fetchCurrentHousehold } from "@/lib/api/HouseholdMembershipApi";
 import {
-    Chore,
-    fetchChores,
-    deleteChore,
     approveChore,
+    fetchChoresForHousehold,
+    type Chore,
 } from "@/lib/api/choreApi";
 
 export default function ChoreList() {
+    const { user } = useAuth();
+
     const [chores, setChores] = useState<Chore[]>([]);
     const [loading, setLoading] = useState(true);
+    const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        loadChores();
-    }, []);
+    async function load() {
+        if (!user) return;
 
-    async function loadChores() {
         setLoading(true);
+        setError(null);
+
         try {
-            const data = await fetchChores();
+            const household = await fetchCurrentHousehold(user.id);
+            if (!household) {
+                setChores([]);
+                setError("Je zit nog niet in een huishouden.");
+                return;
+            }
+
+            const data = await fetchChoresForHousehold(household.id);
             setChores(data);
-        } catch (err) {
-            console.error(err);
+        } catch (e) {
+            console.error(e);
+            setError("Kon taken niet laden.");
         } finally {
             setLoading(false);
         }
     }
 
-    async function handleApprove(chore: Chore) {
+    useEffect(() => {
+        load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
+
+    async function handleApprove(choreId: string) {
+        setActionLoadingId(choreId);
+        setError(null);
         try {
-            const updated = await approveChore(chore.id);
-            setChores((prev) =>
-                prev.map((c) => (c.id === updated.id ? updated : c))
-            );
-        } catch (err) {
-            console.error(err);
+            await approveChore(choreId);
+            await load(); // ✅ herladen zodat status meteen klopt
+        } catch (e) {
+            console.error(e);
+            setError("Goedkeuren mislukt.");
+        } finally {
+            setActionLoadingId(null);
         }
     }
 
-    async function handleDelete(id: string) {
-        try {
-            await deleteChore(id);
-            setChores((prev) => prev.filter((c) => c.id !== id));
-        } catch (err) {
-            console.error(err);
-        }
-    }
-
-    function renderStatus(chore: Chore) {
-        if (chore.done) {
-            return "Afgerond (goedgekeurd)";
-        }
-        if (chore.pendingApproval) {
-            return "Wacht op goedkeuring";
-        }
-        if (chore.assignedMemberId) {
-            return "Toegewezen aan lid";
-        }
-        return "Open";
-    }
-
-    if (loading) {
-        return <p className="cc-text-muted">Taken laden...</p>;
-    }
+    if (!user) return <p className="cc-text-muted">Log in om taken te beheren.</p>;
+    if (loading) return <p className="cc-text-muted">Taken laden...</p>;
+    if (error) return <p className="text-red-500 text-sm">{error}</p>;
 
     if (chores.length === 0) {
-        return (
-            <div className="cc-card">
-                <p className="cc-text-muted">
-                    Er zijn nog geen taken aangemaakt. Voeg er eerst een toe.
-                </p>
-            </div>
-        );
+        return <p className="cc-text-muted">Nog geen taken in dit huishouden.</p>;
     }
+
+    // handig: pending eerst
+    const sorted = [...chores].sort((a, b) => {
+        const ap = a.pendingApproval ? 0 : 1;
+        const bp = b.pendingApproval ? 0 : 1;
+        return ap - bp;
+    });
 
     return (
         <div className="cc-stack">
-            {chores.map((chore) => (
-                <div key={chore.id} className="cc-card cc-card-row">
-                    <div>
-                        <p
-                            className={
-                                "cc-card-title" +
-                                (chore.done ? " cc-text-done" : "")
-                            }
-                            style={{ fontSize: "1rem" }}
-                        >
-                            {chore.title} · {chore.points} punten
-                        </p>
-                        {chore.description && (
-                            <p className="cc-text-muted">{chore.description}</p>
-                        )}
-                        <p className="cc-text-muted" style={{ marginTop: ".25rem" }}>
-                            Status: <strong>{renderStatus(chore)}</strong>
-                        </p>
-                    </div>
+            {sorted.map((c) => {
+                const status = c.done
+                    ? "Goedgekeurd ✅"
+                    : c.pendingApproval
+                        ? "Wacht op goedkeuring ⏳"
+                        : "Open";
 
-                    <div className="cc-stack" style={{ alignItems: "flex-end" }}>
-                        {chore.pendingApproval && !chore.done && (
+                const canApprove = c.pendingApproval && !c.done;
+
+                return (
+                    <div
+                        key={c.id}
+                        className="flex items-center justify-between rounded-xl bg-white px-4 py-3 shadow-sm"
+                    >
+                        <div>
+                            <p className="font-medium text-slate-900">{c.title}</p>
+                            <p className="cc-text-muted text-xs">{c.description}</p>
+                            <p className="text-xs text-slate-500 mt-1">
+                                {c.points} pt · Status: {status}
+                            </p>
+                        </div>
+
+                        {canApprove ? (
                             <button
-                                onClick={() => handleApprove(chore)}
                                 className="cc-btn"
+                                disabled={actionLoadingId === c.id}
+                                onClick={() => handleApprove(c.id)}
                             >
-                                Goedkeuren
+                                {actionLoadingId === c.id ? "Bezig..." : "Goedkeuren"}
                             </button>
+                        ) : (
+                            <span className="text-xs text-slate-500">—</span>
                         )}
-
-                        <button
-                            onClick={() => handleDelete(chore.id)}
-                            className="cc-btn cc-btn-outline"
-                        >
-                            Verwijderen
-                        </button>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }

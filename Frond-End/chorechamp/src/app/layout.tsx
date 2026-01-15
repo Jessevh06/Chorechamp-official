@@ -8,11 +8,7 @@ export const metadata: Metadata = {
     description: "Hou je huishouden eerlijk & leuk",
 };
 
-export default function RootLayout({
-                                       children,
-                                   }: {
-    children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="nl">
         <body className="cc-body">
@@ -22,9 +18,7 @@ export default function RootLayout({
             <footer className="cc-footer">
                 <div className="cc-footer-inner">
                     <span>© {new Date().getFullYear()} ChoreChamp</span>
-                    <span className="cc-footer-sub">
-                Gemaakt met Next.js & Spring Boot
-              </span>
+                    <span className="cc-footer-sub">Gemaakt met Next.js & Spring Boot</span>
                 </div>
             </footer>
         </AuthProvider>

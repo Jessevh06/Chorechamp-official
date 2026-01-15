@@ -10,11 +10,17 @@ public class ChoreDto {
     private boolean pendingApproval;
     private String assignedMemberId;
 
-    public ChoreDto() {
-    }
+    public ChoreDto() {}
 
-    public ChoreDto(String id, String title, String description, int points,
-                    boolean done, boolean pendingApproval, String assignedMemberId) {
+    public ChoreDto(
+            String id,
+            String title,
+            String description,
+            int points,
+            boolean done,
+            boolean pendingApproval,
+            String assignedMemberId
+    ) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -36,8 +42,21 @@ public class ChoreDto {
         );
     }
 
+    /**
+     * ⚠️ Household zit nu in de Chore entity.
+     * Daarom maken we hier GEEN nieuwe Chore(...) met constructor meer.
+     * Household wordt gezet in de Service via createForHousehold(...).
+     */
     public Chore toEntity() {
-        return new Chore(id, title, description, points, done, pendingApproval, assignedMemberId);
+        Chore c = new Chore();
+        c.setId(id);
+        c.setTitle(title);
+        c.setDescription(description);
+        c.setPoints(points);
+        c.setDone(done);
+        c.setPendingApproval(pendingApproval);
+        c.setAssignedMemberId(assignedMemberId);
+        return c;
     }
 
     // getters & setters
