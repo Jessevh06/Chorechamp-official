@@ -1,9 +1,7 @@
 package com.example.chorechamp.reward;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Column;
+import com.example.chorechamp.household.Household;
+import jakarta.persistence.*;
 
 import java.util.UUID;
 
@@ -24,26 +22,29 @@ public class Reward {
     @Column(nullable = false)
     private int costPoints;
 
-    public Reward() {
-    }
+    @ManyToOne
+    @JoinColumn(name = "household_id")
+    private Household household;
 
-    public Reward(String id, String name, String description, int costPoints) {
+    public Reward() {}
+
+    public Reward(String id, String name, String description, int costPoints, Household household) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.costPoints = costPoints;
+        this.household = household;
     }
 
-    public static Reward createNew(String name, String description, int costPoints) {
+    public static Reward createNew(String name, String description, int costPoints, Household household) {
         return new Reward(
                 UUID.randomUUID().toString(),
                 name,
                 description,
-                costPoints
+                costPoints,
+                household
         );
     }
-
-    // getters & setters
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -56,4 +57,7 @@ public class Reward {
 
     public int getCostPoints() { return costPoints; }
     public void setCostPoints(int costPoints) { this.costPoints = costPoints; }
+
+    public Household getHousehold() { return household; }
+    public void setHousehold(Household household) { this.household = household; }
 }

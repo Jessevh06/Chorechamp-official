@@ -7,8 +7,7 @@ public class RewardDto {
     private int cost;          // zelfde naam als frontend
     private String description;
 
-    public RewardDto() {
-    }
+    public RewardDto() {}
 
     public RewardDto(String id, String name, int cost, String description) {
         this.id = id;
@@ -21,21 +20,19 @@ public class RewardDto {
         return new RewardDto(
                 reward.getId(),
                 reward.getName(),
-                reward.getCostPoints(),   // DB -> DTO
+                reward.getCostPoints(),
                 reward.getDescription()
         );
     }
 
     public Reward toEntity() {
-        return new Reward(
-                id,
-                name,
-                description,
-                cost                       // DTO -> DB
-        );
+        Reward r = new Reward();
+        r.setId(id);
+        r.setName(name);
+        r.setDescription(description);
+        r.setCostPoints(cost);
+        return r;
     }
-
-    // getters & setters
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }

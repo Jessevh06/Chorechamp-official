@@ -1,9 +1,7 @@
 package com.example.chorechamp.chore;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Column;
+import com.example.chorechamp.household.Household;
+import jakarta.persistence.*;
 
 import java.util.UUID;
 
@@ -33,12 +31,22 @@ public class Chore {
     @Column
     private String assignedMemberId;
 
-    public Chore() {
-        // verplicht voor JPA
-    }
+    @ManyToOne
+    @JoinColumn(name = "household_id")
+    private Household household;
 
-    public Chore(String id, String title, String description, int points,
-                 boolean done, boolean pendingApproval, String assignedMemberId) {
+    public Chore() {}
+
+    public Chore(
+            String id,
+            String title,
+            String description,
+            int points,
+            boolean done,
+            boolean pendingApproval,
+            String assignedMemberId,
+            Household household
+    ) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -46,9 +54,10 @@ public class Chore {
         this.done = done;
         this.pendingApproval = pendingApproval;
         this.assignedMemberId = assignedMemberId;
+        this.household = household;
     }
 
-    public static Chore createNew(String title, String description, int points) {
+    public static Chore createNew(String title, String description, int points, Household household) {
         return new Chore(
                 UUID.randomUUID().toString(),
                 title,
@@ -56,11 +65,10 @@ public class Chore {
                 points,
                 false,
                 false,
-                null
+                null,
+                household
         );
     }
-
-    // getters & setters
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -82,4 +90,7 @@ public class Chore {
 
     public String getAssignedMemberId() { return assignedMemberId; }
     public void setAssignedMemberId(String assignedMemberId) { this.assignedMemberId = assignedMemberId; }
+
+    public Household getHousehold() { return household; }
+    public void setHousehold(Household household) { this.household = household; }
 }

@@ -11,8 +11,11 @@ public class MemberDto {
     public MemberDto() {
     }
 
-    public MemberDto(String id, String name, String avatarColor,
-                     int currentPoints, int totalEarnedPoints) {
+    public MemberDto(String id,
+                     String name,
+                     String avatarColor,
+                     int currentPoints,
+                     int totalEarnedPoints) {
         this.id = id;
         this.name = name;
         this.avatarColor = avatarColor;
@@ -30,29 +33,45 @@ public class MemberDto {
         );
     }
 
-    public Member toEntity() {
-        return new Member(
-                id,
-                name,
-                avatarColor,
-                currentPoints,
-                totalEarnedPoints
-        );
+    // getters & setters
+
+    public String getId() {
+        return id;
     }
 
-    // getters & setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getName() {
+        return name;
+    }
 
-    public String getAvatarColor() { return avatarColor; }
-    public void setAvatarColor(String avatarColor) { this.avatarColor = avatarColor; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public int getCurrentPoints() { return currentPoints; }
-    public void setCurrentPoints(int currentPoints) { this.currentPoints = currentPoints; }
+    public String getAvatarColor() {
+        return avatarColor;
+    }
 
-    public int getTotalEarnedPoints() { return totalEarnedPoints; }
-    public void setTotalEarnedPoints(int totalEarnedPoints) { this.totalEarnedPoints = totalEarnedPoints; }
+    public void setAvatarColor(String avatarColor) {
+        this.avatarColor = avatarColor;
+    }
+
+    public int getCurrentPoints() {
+        return currentPoints;
+    }
+
+    public void setCurrentPoints(int currentPoints) {
+        this.currentPoints = currentPoints;
+    }
+
+    public int getTotalEarnedPoints() {
+        return totalEarnedPoints;
+    }
+
+    public void setTotalEarnedPoints(int totalEarnedPoints) {
+        this.totalEarnedPoints = totalEarnedPoints;
+    }
 }

@@ -1,9 +1,8 @@
 package com.example.chorechamp.member;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Column;
+import com.example.chorechamp.household.Household;
+import com.example.chorechamp.user.User;
+import jakarta.persistence.*;
 
 import java.util.UUID;
 
@@ -18,7 +17,6 @@ public class Member {
     @Column(nullable = false)
     private String name;
 
-    // bijv. hex kleurcode voor avatar ("#F97316"), pas aan als jij iets anders gebruikt
     @Column(length = 20)
     private String avatarColor;
 
@@ -28,26 +26,62 @@ public class Member {
     @Column(nullable = false)
     private int totalEarnedPoints;
 
-    public Member() {
-        // verplicht voor JPA
-    }
+    @Column(nullable = false)
+    private boolean approved = false;
 
-    public Member(String id, String name, String avatarColor,
-                  int currentPoints, int totalEarnedPoints) {
+    @ManyToOne
+    @JoinColumn(name = "household_id")
+    private Household household;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    public Member() {}
+
+    public Member(
+            String id,
+            String name,
+            String avatarColor,
+            int currentPoints,
+            int totalEarned,
+            boolean approved,
+            Household household,
+            User user
+    ) {
         this.id = id;
         this.name = name;
         this.avatarColor = avatarColor;
         this.currentPoints = currentPoints;
-        this.totalEarnedPoints = totalEarnedPoints;
+        this.totalEarnedPoints = totalEarned;
+        this.approved = approved;
+        this.household = household;
+        this.user = user;
     }
 
-    public static Member createNew(String name, String avatarColor) {
+    public static Member createForUser(User user, String avatarColor) {
+        return new Member(
+                UUID.randomUUID().toString(),
+                user.getUsername(),
+                avatarColor,
+                0,
+                0,
+                false,
+                null,
+                user
+        );
+    }
+
+    public static Member createChild(String name, String avatarColor) {
         return new Member(
                 UUID.randomUUID().toString(),
                 name,
                 avatarColor,
                 0,
-                0
+                0,
+                false,
+                null,
+                null
         );
     }
 
@@ -67,4 +101,13 @@ public class Member {
 
     public int getTotalEarnedPoints() { return totalEarnedPoints; }
     public void setTotalEarnedPoints(int totalEarnedPoints) { this.totalEarnedPoints = totalEarnedPoints; }
+
+    public boolean isApproved() { return approved; }
+    public void setApproved(boolean approved) { this.approved = approved; }
+
+    public Household getHousehold() { return household; }
+    public void setHousehold(Household household) { this.household = household; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 }
