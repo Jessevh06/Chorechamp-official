@@ -12,6 +12,11 @@ body {
     margin: 0;
 }
 
+/* CLS FIX: altijd scrollbar ruimte reserveren (voorkomt width shift) */
+html {
+    overflow-y: scroll;
+}
+
 body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -27,15 +32,34 @@ body {
     flex-direction: column;
 }
 
+/* jouw Lighthouse culprit is main.cc-main / bij jou gebruik je cc-page */
+/* CLS FIX: reserveer genoeg hoogte zodat main niet “groeit” bij load */
+.cc-page {
+    flex: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 2rem;
+
+    /* CLS fix: main height stabieler */
+    min-height: calc(100vh - 140px);
+
+    /* helpt tegen reflow spikes tijdens load */
+    contain: layout paint;
+}
+
+/* als je cc-main nog ergens gebruikt, ook meenemen */
 .cc-main {
     flex: 1;
     max-width: 960px;
     margin: 0 auto;
     padding: 1.5rem 1rem 2rem;
+    min-height: calc(100vh - 140px);
+    contain: layout paint;
 }
 
 @media (min-width: 768px) {
-    .cc-main {
+    .cc-main,
+    .cc-page {
         padding: 2rem 0 3rem;
     }
 }
@@ -80,10 +104,16 @@ body {
 }
 
 .cc-nav-links {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+ }
+.cc-nav-links {
+    min-height: 34px;
+    min-width: 260px; /* pas aan op aantal knoppen */
+    justify-content: flex-end;
 }
+
 
 .cc-nav-link {
     font-size: 0.9rem;
@@ -141,6 +171,23 @@ body {
     border: 1px solid #e5e7eb;
     padding: 1rem 1.25rem;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+
+    /* CLS FIX: reserveer hoogte zodat cards niet "springen" */
+    min-height: 160px;
+}
+
+/* Voor cards met lijsten (Taken/Leden/Beloningen) */
+.cc-card-list {
+    height: 240px;              /* vaste hoogte = geen CLS */
+    display: flex;
+    flex-direction: column;
+}
+
+.cc-card-list > ul {
+    flex: 1;
+    overflow: auto;
+    margin: 0;
+    padding-right: 4px;
 }
 
 .cc-card-header {
@@ -154,6 +201,10 @@ body {
 .cc-card-title {
     font-size: 1.1rem;
     font-weight: 600;
+
+    /* CLS FIX: stabiele tekst hoogte */
+    line-height: 1.25;
+    min-height: calc(1.25em * 1);
 }
 
 .cc-card-subtitle {
@@ -224,9 +275,13 @@ body {
     margin-bottom: 0.25rem;
     color: #374151;
 }
-/* Stacked layout met nette verticale ruimte */
-.cc-stack > * + * {
-    margin-top: 0.75rem;
+
+
+/* CLS FIX: gap is stabieler */
+.cc-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
 /* Card in rij-layout (title links, actions rechts) */
@@ -253,5 +308,89 @@ body {
     margin-right: 6px;
 }
 
+/* ====== Skeleton loaders (CLS killer) ====== */
 
+.cc-skeleton {
+    border-radius: 0.75rem;
+    background: #e5e7eb;
+    position: relative;
+    overflow: hidden;
+}
+
+.cc-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+            90deg,
+            rgba(229, 231, 235, 0) 0%,
+            rgba(255, 255, 255, 0.65) 50%,
+            rgba(229, 231, 235, 0) 100%
+    );
+    animation: cc-shimmer 1.2s infinite;
+}
+
+@keyframes cc-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.cc-skel-line {
+    height: 12px;
+}
+
+.cc-skel-line.lg {
+    height: 18px;
+}
+
+.cc-skel-line.sm {
+    height: 10px;
+    opacity: 0.85;
+}
+
+.cc-skel-line + .cc-skel-line {
+    margin-top: 10px;
+}
+
+/* optional width helpers */
+.cc-w-30 { width: 30%; }
+.cc-w-45 { width: 45%; }
+.cc-w-60 { width: 60%; }
+.cc-w-80 { width: 80%; }
+.cc-w-100 { width: 100%; }
+/* Zorg dat zowel cc-main als cc-page altijd stabiel zijn */
+main.cc-main,
+main.cc-page {
+    min-height: calc(100vh - 140px);
+}
+
+/* voorkom dat main van breedte/layout verandert tijdens CSS load */
+main.cc-main,
+main.cc-page {
+    width: 100%;
+}
+.cc-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+.cc-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .cc-grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+    .cc-grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+}
 

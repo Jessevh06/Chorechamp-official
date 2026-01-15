@@ -1,39 +1,68 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Reward, fetchRewards } from "@/lib/api/rewardApi";
-// evt. later: import { useAuth } from "@/lib/auth/AuthContext";
+import { Reward, fetchRewardsForHousehold } from "@/lib/api/rewardApi";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { fetchCurrentHousehold } from "@/lib/api/HouseholdMembershipApi";
 
 export default function RewardShop() {
+    const { user } = useAuth();
+
     const [rewards, setRewards] = useState<Reward[]>([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        load();
-    }, []);
+        let cancelled = false;
 
-    async function load() {
-        setLoading(true);
-        try {
-            const data = await fetchRewards();
-            setRewards(data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
+        async function load() {
+            if (!user) {
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
+            setError(null);
+
+            try {
+                const household = await fetchCurrentHousehold(user.id);
+                if (!household) {
+                    if (!cancelled) setError("Je zit nog niet in een huishouden.");
+                    return;
+                }
+
+                const data = await fetchRewardsForHousehold(household.id);
+                if (!cancelled) setRewards(data);
+            } catch (err) {
+                console.error(err);
+                if (!cancelled) setError("Kon beloningen niet laden.");
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
         }
-    }
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [user?.id]);
 
     async function handleBuy(reward: Reward) {
-        // TODO: backend endpoint om punten af te trekken & aankoop op te slaan
-        // Voor nu alleen een melding:
         setMessage(`(Demo) Je hebt "${reward.name}" gekocht voor ${reward.cost} punten.`);
         setTimeout(() => setMessage(null), 4000);
     }
 
+    if (!user) {
+        return <p className="cc-text-muted">Log in om beloningen te bekijken.</p>;
+    }
+
     if (loading) {
         return <p className="cc-text-muted">Beloningen laden...</p>;
+    }
+
+    if (error) {
+        return <p className="cc-text-muted">{error}</p>;
     }
 
     if (rewards.length === 0) {
@@ -59,15 +88,10 @@ export default function RewardShop() {
                             {reward.description && (
                                 <p className="cc-text-muted text-xs">{reward.description}</p>
                             )}
-                            <p className="cc-text-muted text-xs">
-                                Kost {reward.cost} punten
-                            </p>
+                            <p className="cc-text-muted text-xs">Kost {reward.cost} punten</p>
                         </div>
 
-                        <button
-                            className="cc-btn"
-                            onClick={() => handleBuy(reward)}
-                        >
+                        <button className="cc-btn" onClick={() => handleBuy(reward)}>
                             Kopen
                         </button>
                     </div>
